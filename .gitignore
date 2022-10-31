@@ -31,3 +31,10 @@
 *.app
 
 *.sublime-workspace
+.vscode/launch.json
+.vscode/tasks.json
+src/.project
+src/.cproject
+src/main
+src/.settings/org.eclipse.cdt.codan.core.prefs
+src/__pycache__/psh.cpython-38.pyc
