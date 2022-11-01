@@ -1,8 +1,13 @@
 from math import ceil
 from collections import defaultdict,namedtuple
 import numpy as np
-
+from sys import getsizeof
 data_tuple=namedtuple("DataTuple",["location","contents"])
+
+def point_to_index(point,width,d):
+    return np.ravel_multi_index(point,(width,)*d,mode="wrap",order="C")
+def index_to_point(index,width,d,max=None):
+    return np.array(np.unravel_index(index,(width,)*d))
 
 #TODO: convert to subclass of collections.abc.MutableMapping
 class PerfectSpatialHashMap:
@@ -43,9 +48,13 @@ class PerfectSpatialHashMap:
             #size of the offset table
             self.r=self.r_bar**self.d
             #initial offset table array
-            self.phi=np.empty((self.r,self.d),dtype=self.int_type)
+            self.phi=np.zeros((self.r,self.d),dtype=self.int_type)
             create_succeeded=self.try_create_hash_table(data)
 
+    def memory_size(self):
+        internal_size=sum((getsizeof(item) for item in self.__dict__.values()))
+        hash_table_size=sum((getsizeof(Hi) for Hi in self.H))
+        return internal_size+hash_table_size
     def prime(self):
         return self.generator.choice(self.primes)
 
@@ -64,7 +73,7 @@ class PerfectSpatialHashMap:
                 break
 
             #try to jiggle the offsets until an injective mapping is found
-            if (not self.jiggle_offsets(H_hat, H_b_hat, self.phi, bucket)):
+            if (not self.jiggle_offsets(H_hat, H_b_hat, bucket)):
                 return False
 
         if not self.hash_positions(data, H_hat):
@@ -74,10 +83,10 @@ class PerfectSpatialHashMap:
 
     def bad_m_r(self):
         '''
-        test if hash table and offset table widths are coprime
+        test if hash table and offset table widths are not coprime or are an empirically bad case
         '''
         m_mod_r=self.m_bar%self.r_bar
-        return m_mod_r==1 or m_mod_r==(self.r_bar-1)
+        return m_mod_r==1 or m_mod_r==(self.r_bar-1) or np.gcd(self.m_bar,self.r_bar)>1
         
     def create_buckets(self,data):
         buckets=[Bucket(i) for i in range(self.r)]
@@ -87,14 +96,14 @@ class PerfectSpatialHashMap:
         buckets.sort(reverse=True)#sort buckets in descending order of size
         return buckets
 
-    def jiggle_offsets(self,H_hat,H_b_hat,phi_hat,bucket):
+    def jiggle_offsets(self,H_hat,H_b_hat,bucket):
         #start at a random point
         start_offset=self.generator.integers(0,self.m)
 
         found=False
         found_offset=np.ones((self.d,),dtype=self.int_type)
         #try every possible offset
-        for i in range(self.r):
+        for i in range(self.m):
             #wrap around by the size of the hash table, then convert to a multi index
             phi_offset=self.index_to_point((start_offset+i)%self.m,self.m_bar)
             collision=False
@@ -107,7 +116,7 @@ class PerfectSpatialHashMap:
                 if index==bucket.phi_index:
                     offset=phi_offset
                 else:
-                    offset=phi_hat[index]
+                    offset=self.phi[index]
                 hash=h0+offset
                 #check if the resulting hash is in use
                 collision=H_b_hat[self.point_to_index(hash,self.m_bar)]
@@ -116,39 +125,38 @@ class PerfectSpatialHashMap:
             if not collision:
                 found=True
                 found_offset=phi_offset
+                break
         if found:
             #update the offset table array with the new offset
-            phi_hat[bucket.phi_index]=found_offset
+            self.phi[bucket.phi_index]=found_offset
             #and insert the bucket into the hash table at that location
-            self.insert(bucket,H_hat,H_b_hat,phi_hat)
+            self.insert(bucket,H_hat,H_b_hat)
             return True
         else:
             return False
 
-    def insert(self,bucket,H_hat,H_b_hat,phi_hat):
+    def insert(self,bucket,H_hat,H_b_hat):
         for element in bucket:
-            hashed=self.hash(element.location,phi_hat)
-            i=self.point_to_index(hashed,self.m_bar)
+            i=self.get_item_index(element.location)
             H_hat[i]=PerfectSpatialHashEntry(element,self.M2)
             H_b_hat[i]=True
 
-    def hash(self,point,offset_table=None):
+    def hash(self,point,offset=None):
         '''
         return the index in the hash table for a given position in the domain
 
         Parameters: point : (d,) np integer array
                         location in the domain
-                    offset_table : (self.r_bar,d) np integer array or None (default)
-                        if None, uses self.phi
+                    offset: integer or None (default)
+                        if None, looks up offset in self.phi
         Returns:    hash_position: integer
                         index into hash table (which is stored at self.H)
         '''
-        if offset_table is None:
-            offset_table=self.phi
         h0=point*self.M0
         h1=point*self.M1
         i=self.point_to_index(h1,self.r_bar)
-        offset=offset_table[i]
+        if offset is None:
+            offset=self.phi[i]
         return h0+offset
 
     def hash_positions(self,data,H_hat):
@@ -162,19 +170,19 @@ class PerfectSpatialHashMap:
             if data_b[i]:
                 continue
             p=self.index_to_point(i,self.u_bar)
-            l=self.point_to_index(self.hash(p),self.m_bar)
+            l=self.get_item_index(p)
             #record if position hash collides with existing element
             indices[l]=H_hat[l].hk==entry_hash(p,self.M2,1)
         #go through stored collisions and record all points that map to those indices
         collisions=defaultdict(list)
         for i in range(domain_size):
             p=self.index_to_point(i,self.u_bar)
-            l=self.point_to_index(self.hash(p),self.m_bar)
+            l=self.get_item_index(p)
             if indices[l]:
                 collisions[l].append(i)
         #try to change positional hash parameter until no collisions
         success=True
-        for domain_index,colliding_indices in collisions:
+        for domain_index,colliding_indices in collisions.items():
             if not self.fix_k(H_hat[domain_index],colliding_indices):
                 success=False
         return success
@@ -189,6 +197,7 @@ class PerfectSpatialHashMap:
         Returns:    success
                         calls itself recursively until a H_entry.k is found that doesn't collide OR all have been tried  
         '''
+        maxint=np.iinfo(self.int_type).max
         H_entry.increment_k(self.M2)
         #if k is 0, all values have been tried
         if H_entry.k==0:
@@ -196,7 +205,7 @@ class PerfectSpatialHashMap:
         success=True
         for i in colliding_indices:
             #i is a domain index
-            p=self.index_to_point(i,self.u_bar)
+            p=self.index_to_point(i,self.u_bar,maxint)
             hk=entry_hash(p, self.M2, H_entry.k)
             if np.any(H_entry.location!=p) and H_entry.hk==hk:
                 success=False
@@ -207,21 +216,36 @@ class PerfectSpatialHashMap:
         return True
 
     def point_to_index(self,point,width):
-        return np.ravel_multi_index(point,(width,)*self.d,mode="wrap")
-    def index_to_point(self,index,width):
-        return np.array(np.unravel_index(index,(width,)*self.d))
+        return point_to_index(point,width,self.d)
+    def index_to_point(self,index,width,max=None):
+        return index_to_point(index,width,self.d,max)
 
+    def get_offset_table_index(self,point):
+        '''
+        compute the index into the offset table. Implements h1 with wrapping
+        '''
+        return self.point_to_index(point*self.M1,self.r_bar)
+    def get_hash_table_index(self,point):
+        '''
+        compute the index into the hash table (with NO offset). Implements h0 with wrapping.
+        '''
+        return self.point_to_index(point*self.M0,self.m_bar)
+    def get_item_index(self,point):
+        '''
+        compute the index into the hash table WITH offset. Use for data access
+        '''
+        return self.point_to_index(self.hash(point),self.m_bar)
     def __getitem__(self,point):
         #find where element would be located
-        i=self.point_to_index(self.hash(point),self.m_bar)
+        i=self.get_item_index(point)
         #and check has correct positional hash
         if self.H[i].equals(point,self.M2):
             return self.H[i].contents
         else:
-            raise ValueError("Element not found in map")
+            raise KeyError("Element not found in map")
     def __setitem__(self,point,contents):
-        i=self.point_to_index(self.hash(point),self.m_bar)
-        if self.H[i].hk==1:
+        i=self.get_item_index(point)
+        if self.H[i].hk is None:
             #nothing exists at this location
             self.H[i]=PerfectSpatialHashEntry(data_tuple(point,contents),self.M2)
         elif self.H[i].equals(point,self.M2):
@@ -260,7 +284,7 @@ class PerfectSpatialHashEntry:
         else:
             self.contents=None
             self.location=None
-            self.hk=1
+            self.hk=None
     def rehash(self,point,prime,new_k=1):
         self.k=new_k
         self.hk=entry_hash(point,prime,self.k)
@@ -272,3 +296,5 @@ class PerfectSpatialHashEntry:
         self.contents=contents
         self.location=location
         self.rehash(self.location,prime,self.k)
+    def __sizeof__(self):
+        return sum((getsizeof(item) for item in self.__dict__.values()))
