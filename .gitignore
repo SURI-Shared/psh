@@ -38,3 +38,4 @@ src/.cproject
 src/main
 src/.settings/org.eclipse.cdt.codan.core.prefs
 src/__pycache__/psh.cpython-38.pyc
+*.pyc
