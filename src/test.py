@@ -91,7 +91,7 @@ class TestRandomData(unittest.TestCase):
         count=0
         for x in range(self.width):
             for y in range(self.width):
-                if self.rng.uniform()<(1/20):
+                if self.rng.uniform()<(1/2):
                     element=psh.data_tuple(np.array([x,y],dtype=np.uint64),count)
                     count+=1
                     self.data.append(element)
@@ -127,7 +127,7 @@ class Test3DRandomData(TestRandomData):
         for x in range(self.width):
             for y in range(self.width):
                 for z in range(self.width):
-                    if self.rng.uniform()<(1/20):
+                    if self.rng.uniform()<(1/2):
                         element=psh.data_tuple(np.array([x,y,z],dtype=np.uint64),count)
                         count+=1
                         self.data.append(element)
