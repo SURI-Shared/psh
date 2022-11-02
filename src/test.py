@@ -7,6 +7,7 @@ class TestIndexFunctions(unittest.TestCase):
         self.rng=np.random.default_rng(0)
         self.d=2
         self.width=10000
+        self.shape=(self.width,)*self.d
         self.max=int(self.width**self.d)
         self.maxint=np.iinfo(np.array([self.width]).dtype).max
     def _point_to_index(self,point,width,max):
@@ -39,12 +40,12 @@ class TestIndexFunctions(unittest.TestCase):
         pts=self.rng.integers(0,self.width,size=(1000,self.d),dtype=np.uint64)
         for pt in pts:
             with self.subTest(pt=pt):
-                self.assertEqual(psh.point_to_index(pt,self.width,self.d),self._point_to_index(pt,self.width,self.max))
+                self.assertEqual(psh.point_to_index(pt,self.shape),self._point_to_index(pt,self.width,self.max))
     def test_index_to_point_unsigned(self):
         pts=self.rng.integers(0,self.max,size=(1000,),dtype=np.uint64)
         for pt in pts:
             with self.subTest(index=pt):
-                mine=tuple(psh.index_to_point(pt,self.width,self.d))
+                mine=tuple(psh.index_to_point(pt,self.shape))
                 theirs=tuple(self._index_to_point(pt,self.width,self.max,self.d))
                 self.assertEqual(mine,theirs)
 
@@ -52,14 +53,14 @@ class TestIndexFunctions(unittest.TestCase):
         pts=self.rng.integers(0,self.width,size=(1000,self.d),dtype=np.uint64)
         for pt in pts:
             with self.subTest(pt=pt):
-                index=psh.point_to_index(pt,self.width,self.d)
-                self.assertEqual(tuple(psh.index_to_point(index,self.width,self.d)),tuple(pt))
+                index=psh.point_to_index(pt,self.shape)
+                self.assertEqual(tuple(psh.index_to_point(index,self.shape)),tuple(pt))
 
     def test_index_to_point_negative(self):
         pts=self.rng.integers(0,self.max,size=(1000,),dtype=np.uint64)
         for pt in pts:
             with self.subTest(index=pt):
-                mine=tuple(psh.index_to_point(pt,self.width,self.d,self.maxint))
+                mine=tuple(psh.index_to_point(pt,self.shape))
                 theirs=tuple(self._index_to_point(pt,self.width,self.maxint,self.d))
                 self.assertEqual(mine,theirs)
 class TestEntryHash(unittest.TestCase):
@@ -89,26 +90,27 @@ class TestGameOfLife(unittest.TestCase):
         self.rng=np.random.default_rng(0)
         self.width=48
         self.d=2
+        self.shape=(self.width,)*self.d
         self.data=[]
         self.data_b=np.full(self.width*self.width,False)
-        self.maxint=np.iinfo(np.array([self.width]).dtype).max
         for x in range(self.width):
             for y in range(self.width):
                 if self.rng.uniform()<(1/20):
-                    element=psh.data_tuple(np.array([x,y]),True)
+                    element=psh.data_tuple(np.array([x,y],dtype=np.uint64),True)
                     self.data.append(element)
-                    self.data_b[psh.point_to_index(element.location,self.width,2)]=True
+                    self.data_b[psh.point_to_index(element.location,self.shape)]=True
         self.hashmap=psh.PerfectSpatialHashMap(self.data,self.d,self.width,0)
+        self.maxint=np.iinfo(self.hashmap.int_type).max
     def test_all_pts_exist(self):
-        for i in range(self.width**2):
+        for i in np.arange(self.width**2,dtype=self.hashmap.int_type):
             if self.data_b[i]:
-                p=psh.index_to_point(i,self.width,self.d,self.maxint)
+                p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
                 with self.subTest(point=p):
                     self.hashmap[p]
     def test_no_imaginary_pts(self):
-        for i in range(self.width**2):
+        for i in np.arange(self.width**2,dtype=self.hashmap.int_type):
             if not self.data_b[i]:
-                p=psh.index_to_point(i,self.width,self.d,self.maxint)
+                p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
                 with self.subTest(point=p):
                     self.assertRaises(KeyError,
                     self.hashmap.__getitem__,
