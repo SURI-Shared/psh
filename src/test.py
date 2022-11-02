@@ -80,7 +80,7 @@ class TestEntryHash(unittest.TestCase):
                     mine=psh.entry_hash(pt,prime,parameter)
                     self.assertEqual(mine,correct)
 
-class TestGameOfLife(unittest.TestCase):
+class TestRandomData(unittest.TestCase):
     def setUp(self):
         self.rng=np.random.default_rng(0)
         self.width=48
@@ -88,10 +88,12 @@ class TestGameOfLife(unittest.TestCase):
         self.shape=(self.width,)*self.d
         self.data=[]
         self.data_b=np.full(self.width*self.width,False)
+        count=0
         for x in range(self.width):
             for y in range(self.width):
                 if self.rng.uniform()<(1/20):
-                    element=psh.data_tuple(np.array([x,y],dtype=np.uint64),True)
+                    element=psh.data_tuple(np.array([x,y],dtype=np.uint64),count)
+                    count+=1
                     self.data.append(element)
                     self.data_b[psh.point_to_index(element.location,self.shape)]=True
         self.hashmap=psh.PerfectSpatialHashMap(self.data,self.d,self.width,0)
@@ -108,7 +110,12 @@ class TestGameOfLife(unittest.TestCase):
                 self.assertRaises(KeyError,
                     self.hashmap.__getitem__,
                     p)
-class Test3DGameOfLife(TestGameOfLife):
+    def test_all_pts_correct(self):
+        for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
+            if self.data_b[i]:
+                p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
+                self.assertEqual(self.data[i].contents,self.hashmap[p])
+class Test3DRandomData(TestRandomData):
     def setUp(self):
         self.rng=np.random.default_rng(0)
         self.width=12
@@ -116,11 +123,13 @@ class Test3DGameOfLife(TestGameOfLife):
         self.shape=(self.width,)*self.d
         self.data=[]
         self.data_b=np.full(self.width**self.d,False)
+        count=0
         for x in range(self.width):
             for y in range(self.width):
                 for z in range(self.width):
                     if self.rng.uniform()<(1/20):
-                        element=psh.data_tuple(np.array([x,y,z],dtype=np.uint64),True)
+                        element=psh.data_tuple(np.array([x,y,z],dtype=np.uint64),count)
+                        count+=1
                         self.data.append(element)
                         self.data_b[psh.point_to_index(element.location,self.shape)]=True
         self.hashmap=psh.PerfectSpatialHashMap(self.data,self.d,self.width,0)
