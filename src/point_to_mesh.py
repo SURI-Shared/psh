@@ -13,7 +13,7 @@ def main(spacing=0.001):
     gridpoints=mesh.bounding_box.sample_grid(step=spacing)#minimum corners
     minimums=np.min(gridpoints,0)
     integer_positions=((gridpoints-minimums)//spacing).astype(np.uint64)
-    domain_width=np.max(integer_positions,0)
+    domain_width=np.max(integer_positions,0)-np.min(integer_positions,0)+1
     data=[]
 
     #compute which triangles of the mesh intersect each voxel
@@ -31,7 +31,7 @@ def main(spacing=0.001):
         if intersects:
             element=psh.data_tuple(integer_positions[i],voxel_data(i,tuple(cd.index("mesh") for cd in contacts)))
             data.append(element)
-            intersecting_voxels.add(i)
+            intersecting_voxels.add(tuple(integer_positions[i]))
 
     #store voxels with non-empty intersections in hashmap
     hashmap=psh.PerfectSpatialHashMap(data,3,domain_width,0,verbose=True)
@@ -46,23 +46,21 @@ def main(spacing=0.001):
         lambdas=rng.uniform(size=(n_test_pts,3))
         sample_points=lambdas*spacing+pt
         for j in range(n_test_pts):
+            integer_coordinate=tuple(((sample_points[j]-minimums)//spacing).astype(np.uint64))
             try:
                 element=query_point(hashmap,sample_points[j],minimums,spacing)
             except KeyError:
-                if i in intersecting_voxels:
+                if integer_coordinate in intersecting_voxels:
                     missing_pts.append(sample_points[j])
                 element=None
             if element is not None:
-                if i not in intersecting_voxels:
+                if integer_coordinate not in intersecting_voxels:
                     #imaginary point appeared
                     imaginary_pts.append(sample_points[j])
                 elif element.voxel_id!=i:
                     #mapped to wrong voxel!
                     wrong_pts.append(sample_points[j])
-    print("missing ("+str(len(missing_pts))+"): ")
-    print(missing_pts)
-    print("Extra ("+str(len(imaginary_pts))+"): ")
-    print(imaginary_pts)
-    print("Wrong ("+str(len(wrong_pts))+"): ")
-    print(wrong_pts)
+    print("missing ("+str(len(missing_pts))+")")
+    print("Extra ("+str(len(imaginary_pts))+")")
+    print("Wrong ("+str(len(wrong_pts))+")")
     return hashmap, data, mesh,spacing,minimums,missing_pts,imaginary_pts,wrong_pts
