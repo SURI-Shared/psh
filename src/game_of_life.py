@@ -9,12 +9,13 @@ def game_of_life_test(seed):
     data=[]
     data_b=np.full(width*width,False)
     maxint=np.iinfo(np.array([width]).dtype).max
+    shape=(width,)*2
     for x in range(width):
         for y in range(width):
             if rng.uniform()<(1/20):
                 element=psh.data_tuple(np.array([x,y]),True)
                 data.append(element)
-                data_b[psh.point_to_index(element.location,width,2)]=True
+                data_b[psh.point_to_index(element.location,shape)]=True
     print("data size: "+str(len(data)))
     print("data density: "+str(len(data)/width**2))
     start=timeit.default_timer()
@@ -41,7 +42,7 @@ def game_of_life_test(seed):
     missing=[]
     imaginary=[]
     for i in range(width**2):
-        p=psh.index_to_point(i,width,2,maxint)
+        p=psh.index_to_point(i,(width,)*2)
         exists=data_b[i]
         try:
             hashmap[p]

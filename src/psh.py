@@ -117,7 +117,7 @@ class PerfectSpatialHashMap:
 
     def jiggle_offsets(self,H_hat,H_b_hat,bucket):
         #start at a random point
-        start_offset=self.generator.integers(0,self.m,dtype=self.int_type)
+        start_offset=self.generator.integers(0,self.m).astype(self.int_type)
 
         found=False
         found_offset=np.ones((self.d,),dtype=self.int_type)
