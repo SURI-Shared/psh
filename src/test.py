@@ -83,5 +83,37 @@ class TestEntryHash(unittest.TestCase):
                         correct=self._hash_function(pt,prime,parameter)
                         mine=psh.entry_hash(pt,prime,parameter)
                         self.assertEqual(mine,correct)
+
+class TestGameOfLife(unittest.TestCase):
+    def setUp(self):
+        self.rng=np.random.default_rng(0)
+        self.width=48
+        self.d=2
+        self.data=[]
+        self.data_b=np.full(self.width*self.width,False)
+        self.maxint=np.iinfo(np.array([self.width]).dtype).max
+        for x in range(self.width):
+            for y in range(self.width):
+                if self.rng.uniform()<(1/20):
+                    element=psh.data_tuple(np.array([x,y]),True)
+                    self.data.append(element)
+                    self.data_b[psh.point_to_index(element.location,self.width,2)]=True
+        self.hashmap=psh.PerfectSpatialHashMap(self.data,self.d,self.width,0)
+    def test_all_pts_exist(self):
+        for i in range(self.width**2):
+            if self.data_b[i]:
+                p=psh.index_to_point(i,self.width,self.d,self.maxint)
+                with self.subTest(point=p):
+                    self.hashmap[p]
+    def test_no_imaginary_pts(self):
+        for i in range(self.width**2):
+            if not self.data_b[i]:
+                p=psh.index_to_point(i,self.width,self.d,self.maxint)
+                with self.subTest(point=p):
+                    self.assertRaises(KeyError,
+                    self.hashmap.__getitem__,
+                    p)
+
+
 if __name__=="__main__":
     unittest.main()
