@@ -39,30 +39,26 @@ class TestIndexFunctions(unittest.TestCase):
     def test_point_to_index_unsigned(self):
         pts=self.rng.integers(0,self.width,size=(1000,self.d),dtype=np.uint64)
         for pt in pts:
-            with self.subTest(pt=pt):
-                self.assertEqual(psh.point_to_index(pt,self.shape),self._point_to_index(pt,self.width,self.max))
+            self.assertEqual(psh.point_to_index(pt,self.shape),self._point_to_index(pt,self.width,self.max))
     def test_index_to_point_unsigned(self):
         pts=self.rng.integers(0,self.max,size=(1000,),dtype=np.uint64)
         for pt in pts:
-            with self.subTest(index=pt):
-                mine=tuple(psh.index_to_point(pt,self.shape))
-                theirs=tuple(self._index_to_point(pt,self.width,self.max,self.d))
-                self.assertEqual(mine,theirs)
+            mine=tuple(psh.index_to_point(pt,self.shape))
+            theirs=tuple(self._index_to_point(pt,self.width,self.max,self.d))
+            self.assertEqual(mine,theirs)
 
     def test_point_to_index_to_point_unsigned(self):
         pts=self.rng.integers(0,self.width,size=(1000,self.d),dtype=np.uint64)
         for pt in pts:
-            with self.subTest(pt=pt):
-                index=psh.point_to_index(pt,self.shape)
-                self.assertEqual(tuple(psh.index_to_point(index,self.shape)),tuple(pt))
+            index=psh.point_to_index(pt,self.shape)
+            self.assertEqual(tuple(psh.index_to_point(index,self.shape)),tuple(pt))
 
     def test_index_to_point_negative(self):
         pts=self.rng.integers(0,self.max,size=(1000,),dtype=np.uint64)
         for pt in pts:
-            with self.subTest(index=pt):
-                mine=tuple(psh.index_to_point(pt,self.shape))
-                theirs=tuple(self._index_to_point(pt,self.width,self.maxint,self.d))
-                self.assertEqual(mine,theirs)
+            mine=tuple(psh.index_to_point(pt,self.shape))
+            theirs=tuple(self._index_to_point(pt,self.width,self.maxint,self.d))
+            self.assertEqual(mine,theirs)
 class TestEntryHash(unittest.TestCase):
     def setUp(self) -> None:
         self.primes=[3, 97, 193, 389, 769, 1543, 3079,
@@ -80,10 +76,9 @@ class TestEntryHash(unittest.TestCase):
         for prime in self.primes:
             for pt in self.pts:
                 for parameter in self.parameters:
-                    with self.subTest(prime=prime,point=pt,k=parameter):
-                        correct=self._hash_function(pt,prime,parameter)
-                        mine=psh.entry_hash(pt,prime,parameter)
-                        self.assertEqual(mine,correct)
+                    correct=self._hash_function(pt,prime,parameter)
+                    mine=psh.entry_hash(pt,prime,parameter)
+                    self.assertEqual(mine,correct)
 
 class TestGameOfLife(unittest.TestCase):
     def setUp(self):
@@ -102,19 +97,34 @@ class TestGameOfLife(unittest.TestCase):
         self.hashmap=psh.PerfectSpatialHashMap(self.data,self.d,self.width,0)
         self.maxint=np.iinfo(self.hashmap.int_type).max
     def test_all_pts_exist(self):
-        for i in np.arange(self.width**2,dtype=self.hashmap.int_type):
+        for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
             if self.data_b[i]:
                 p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
-                with self.subTest(point=p):
-                    self.hashmap[p]
+                self.hashmap[p]
     def test_no_imaginary_pts(self):
-        for i in np.arange(self.width**2,dtype=self.hashmap.int_type):
+        for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
             if not self.data_b[i]:
                 p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
-                with self.subTest(point=p):
-                    self.assertRaises(KeyError,
+                self.assertRaises(KeyError,
                     self.hashmap.__getitem__,
                     p)
+class Test3DGameOfLife(TestGameOfLife):
+    def setUp(self):
+        self.rng=np.random.default_rng(0)
+        self.width=12
+        self.d=3
+        self.shape=(self.width,)*self.d
+        self.data=[]
+        self.data_b=np.full(self.width**self.d,False)
+        for x in range(self.width):
+            for y in range(self.width):
+                for z in range(self.width):
+                    if self.rng.uniform()<(1/20):
+                        element=psh.data_tuple(np.array([x,y,z],dtype=np.uint64),True)
+                        self.data.append(element)
+                        self.data_b[psh.point_to_index(element.location,self.shape)]=True
+        self.hashmap=psh.PerfectSpatialHashMap(self.data,self.d,self.width,0)
+        self.maxint=np.iinfo(self.hashmap.int_type).max
 
 
 if __name__=="__main__":
