@@ -172,7 +172,8 @@ class PerfectSpatialHashMap:
             p=self.index_to_point(i,self.u_bar)
             l=self.get_item_index(p)
             #record if position hash collides with existing element
-            indices[l]=H_hat[l].hk==entry_hash(p,self.M2,1)
+            if H_hat[l].equals(p,self.M2):
+                indices[l]=True
         #go through stored collisions and record all points that map to those indices
         collisions=defaultdict(list)
         for i in range(domain_size):
