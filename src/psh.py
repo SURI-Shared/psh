@@ -284,6 +284,8 @@ class PerfectSpatialHashMap:
         else:
             #failure
             raise ValueError("Unable to add element to map")
+    def count_real_entries(self):
+        return sum((e.location is not None for e in self.H))
 
 def entry_hash(point,prime,hash_parameter):
     '''
