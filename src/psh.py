@@ -13,12 +13,12 @@ def index_to_point(index,shape):
 class PerfectSpatialHashMap:
     def __init__(self,data,domain_dim,domain_limit,seed,verbose=False) -> None:
         self.verbose=verbose
+        #input integer type
+        self.int_type=type(data[0].location[0])
         #number of data points
         self.n=len(data)
         #dimension of data
-        self.d=np.uint(domain_dim)
-        #input integer type
-        self.int_type=data[0].location.dtype
+        self.d=self.int_type(domain_dim)
         #random number generator
         self.generator=np.random.default_rng(seed)
         #pick three primes for use in hashing
@@ -31,11 +31,11 @@ class PerfectSpatialHashMap:
             self.M1=self.prime()
         self.M2=self.prime()
         #width of the hash table
-        self.m_bar=np.uint(ceil(self.n**(1/self.d)))
+        self.m_bar=self.int_type(ceil(self.n**(1/self.d)))
         #size of the hash table
         self.m=self.m_bar**self.d
         #width of the offset table (will be updated)
-        self.r_bar=np.uint(ceil((self.n/self.d)**(1/self.d))-1)
+        self.r_bar=self.int_type(ceil((self.n/self.d)**(1/self.d))-1)
         #u_bar is the limit of the domain in each dimension
         try:
             #can specify as an iterable for the size of each dimension
