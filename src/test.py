@@ -112,22 +112,18 @@ class TestRandomData(unittest.TestCase):
                     p)
     def test_all_pts_correct_contents(self):
         msg="Contents at {0}={1}; should be {2}"
-        for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
-            if self.data_b[i]:
-                p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
-                contents=self.hashmap[p]
-                true_contents=self.data[i].contents
-                self.assertEqual(true_contents,contents,msg=msg.format(p,contents,true_contents))
+        for element in self.data:
+            contents=self.hashmap[element.location]
+            true_contents=element.contents
+            self.assertEqual(true_contents,contents,msg=msg.format(element.location,contents,true_contents))
     def test_all_pts_correct_location(self):
         msg="Location should be {0}, is {1}"
-        for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
-            if self.data_b[i]:
-                p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
-                idx=self.hashmap.get_item_index(p)
-                if self.hashmap.H[idx].equals(p,self.hashmap.M2):
-                    true_location=self.data[i].location
-                    location=self.hashmap.H[idx].location
-                    self.assertTrue(np.all(true_location==location),msg.format(true_location,location))
+        for element in self.data:
+            idx=self.hashmap.get_item_index(element.location)
+            if self.hashmap.H[idx].equals(element.location,self.hashmap.M2):
+                true_location=element.location
+                location=self.hashmap.H[idx].location
+                self.assertTrue(np.all(true_location==location),msg.format(true_location,location))
     def test_bucket_offset_indices(self):
         buckets=self.hashmap.create_buckets(self.data)
         for bucket in buckets:
