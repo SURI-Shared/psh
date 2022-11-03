@@ -110,11 +110,65 @@ class TestRandomData(unittest.TestCase):
                 self.assertRaises(KeyError,
                     self.hashmap.__getitem__,
                     p)
-    def test_all_pts_correct(self):
+    def test_all_pts_correct_contents(self):
+        msg="Contents at {0}={1}; should be {2}"
         for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
             if self.data_b[i]:
                 p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
-                self.assertEqual(self.data[i].contents,self.hashmap[p])
+                contents=self.hashmap[p]
+                true_contents=self.data[i].contents
+                self.assertEqual(true_contents,contents,msg=msg.format(p,contents,true_contents))
+    def test_all_pts_correct_location(self):
+        msg="Location should be {0}, is {1}"
+        for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
+            if self.data_b[i]:
+                p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
+                idx=self.hashmap.get_item_index(p)
+                if self.hashmap.H[idx].equals(p,self.hashmap.M2):
+                    true_location=self.data[i].location
+                    location=self.hashmap.H[idx].location
+                    self.assertTrue(np.all(true_location==location),msg.format(true_location,location))
+    def test_bucket_offset_indices(self):
+        buckets=self.hashmap.create_buckets(self.data)
+        for bucket in buckets:
+            for element in bucket:
+                self.assertEqual(self.hashmap.get_offset_table_index(element.location),bucket.phi_index)
+    def test_bucket_item_indices_unique(self):
+        buckets=self.hashmap.create_buckets(self.data)
+        for bucket in buckets:
+            indices=set()
+            for element in bucket:
+                i=self.hashmap.get_item_index(element.location)
+                self.assertNotIn(i,indices)
+                indices.add(i)
+    def test_entry_count(self):
+        self.assertEqual(self.hashmap.count_real_entries(),len(self.data))
+    def test_all_entries_real(self):
+        '''
+        test that every entry in hash table is also in the data set
+        '''
+        locations=np.array([e.location for e in self.data])
+        for entry in self.hashmap.H:
+            if entry.location is not None:
+                logical_idx=np.all(entry.location==locations,1)
+                self.assertTrue(np.any(logical_idx),msg="Hashmap contains location "+str(entry.location)+" and shouldn't")
+                idx=np.nonzero(logical_idx)[0][0]
+                self.assertEqual(entry.contents,self.data[idx].contents)
+    def test_no_entries_missing(self):
+        '''
+        test that every entry in the data set is in the hash table
+        '''
+        unused=set(range(len(self.hashmap.H)))
+        for element in self.data:
+            found=False
+            for idx in unused:
+                if np.all(self.hashmap.H[idx].location==element.location):
+                    if self.hashmap.H[idx].contents==element.contents:
+                        found=True
+                        unused.remove(idx)
+                        break
+            self.assertTrue(found,msg="element "+str(element)+" not found in hash table")
+
 class Test3DRandomData(TestRandomData):
     def setUp(self):
         self.rng=np.random.default_rng(0)
