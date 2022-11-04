@@ -10,7 +10,7 @@ data_tuple=namedtuple("DataTuple",["location","contents"])
 @njit
 def point_to_index(point,shape):
     shape=np.array(shape)
-    return (point[-1]+np.sum(point[:-1]*np.cumprod(shape[:0:-1])[::-1])%np.prod(shape))
+    return (point[-1]+np.sum(point[:-1]*np.cumprod(shape[:0:-1])[::-1]))%np.prod(shape)
 
 def index_to_point(index,shape):
     return np.array(np.unravel_index(index,shape))
@@ -246,7 +246,7 @@ class PerfectSpatialHashMap:
     def point_to_offset_idx(self,point):
         return self._point_to_index(point,(self.r_bar,)*self.d)
     def _point_to_index(self,point,shape):
-        return point_to_index(point,shape).astype(self.int_type)
+        return self.int_type(point_to_index(point,shape))
     def index_to_domain_pt(self,index):
         return self._index_to_point(index,self.u_bar)
     def index_to_hash_pt(self,index):
