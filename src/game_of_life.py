@@ -42,7 +42,7 @@ def game_of_life_test(seed):
     missing=[]
     imaginary=[]
     for i in range(width**2):
-        p=psh.index_to_point(i,(width,)*2)
+        p=psh.index_to_point(i,shape)
         exists=data_b[i]
         try:
             hashmap[p]

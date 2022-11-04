@@ -11,8 +11,14 @@ data_tuple=namedtuple("DataTuple",["location","contents"])
 def point_to_index(point,shape):
     return (point[-1]+np.sum(point[:-1]*np.cumprod(shape[:0:-1])[::-1]))%np.prod(shape)
 
+@njit
 def index_to_point(index,shape):
-    return np.array(np.unravel_index(index,shape))
+    stride=np.concatenate((np.cumprod(shape[-1:0:-1])[::-1],np.array([1],dtype=shape.dtype)))
+    output=np.empty_like(shape)
+    for i in range(len(shape)):
+        output[i]=index//stride[i]
+        index%=stride[i]
+    return output
 
 #TODO: convert to subclass of collections.abc.MutableMapping
 class PerfectSpatialHashMap:
