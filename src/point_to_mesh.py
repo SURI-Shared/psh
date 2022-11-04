@@ -5,11 +5,10 @@ from collections import namedtuple
 
 voxel_data=namedtuple("VoxelData",["voxel_id","triangle_ids"])
 def query_point(hashmap,point,minimums,spacing):
-    return hashmap[np.floor((point+spacing/2-minimums)/spacing).astype(np.uint64)]
-
+    return hashmap[np.floor((point-minimums)/spacing).astype(hashmap.int_type)]
 def integerify_grid(gridpoints,spacing):
     minimums=np.min(gridpoints,0)
-    integer_positions=((gridpoints+spacing/2-minimums)//spacing).astype(np.uint64)
+    integer_positions=((gridpoints+spacing/2-minimums)//spacing).astype(hashmap.int_type)
     #find and fix collisions
     int2float=dict()
     for idx,integer_pos in enumerate(integer_positions):
