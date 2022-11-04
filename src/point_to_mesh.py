@@ -167,7 +167,7 @@ def manual_grid(spacing=0.01):
             intersecting_voxels.add(tuple(integer_positions[i]))
 
     #store voxels with non-empty intersections in hashmap
-    hashmap=psh.PerfectSpatialHashMap(data,3,domain_width,0,verbose=True)
+    hashmap=psh.create_psh(data,3,domain_width,0,verbose=True)
 
     #test that query points inside the voxel are mapped to the correct voxel
     n_test_pts=5

@@ -85,28 +85,29 @@ class TestRandomData(unittest.TestCase):
         self.rng=np.random.default_rng(0)
         self.width=48
         self.d=2
-        self.shape=np.array((self.width,)*self.d,dtype=np.uint64)
+        self.int_type=np.uint64
+        self.shape=np.array((self.width,)*self.d,dtype=self.int_type)
         self.data=[]
         self.data_b=np.full(self.width*self.width,False)
         count=0
         for x in range(self.width):
             for y in range(self.width):
                 if self.rng.uniform()<(1/2):
-                    element=psh.data_tuple(np.array([x,y],dtype=np.uint64),count)
+                    element=psh.data_tuple(np.array([x,y],dtype=self.int_type),count)
                     count+=1
                     self.data.append(element)
                     self.data_b[psh.point_to_index(element.location,self.shape)]=True
-        self.hashmap=psh.PerfectSpatialHashMap(self.data,self.d,self.width,0)
-        self.maxint=np.iinfo(self.hashmap.int_type).max
+        self.hashmap=psh.create_psh(self.data,self.d,self.width,0)
+        self.maxint=np.iinfo(self.int_type).max
     def test_all_pts_exist(self):
-        for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
+        for i in np.arange(self.width**self.d,dtype=self.int_type):
             if self.data_b[i]:
-                p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
+                p=psh.index_to_point(i,self.shape).astype(self.int_type)
                 self.hashmap[p]
     def test_no_imaginary_pts(self):
-        for i in np.arange(self.width**self.d,dtype=self.hashmap.int_type):
+        for i in np.arange(self.width**self.d,dtype=self.int_type):
             if not self.data_b[i]:
-                p=psh.index_to_point(i,self.shape).astype(self.hashmap.int_type)
+                p=psh.index_to_point(i,self.shape).astype(self.int_type)
                 self.assertRaises(KeyError,
                     self.hashmap.__getitem__,
                     p)
@@ -145,7 +146,7 @@ class TestRandomData(unittest.TestCase):
         '''
         locations=np.array([e.location for e in self.data])
         for entry in self.hashmap.H:
-            if entry.location is not None:
+            if len(entry.location)==self.d:
                 logical_idx=np.all(entry.location==locations,1)
                 self.assertTrue(np.any(logical_idx),msg="Hashmap contains location "+str(entry.location)+" and shouldn't")
                 idx=np.nonzero(logical_idx)[0][0]
@@ -158,7 +159,8 @@ class TestRandomData(unittest.TestCase):
         for element in self.data:
             found=False
             for idx in unused:
-                if np.all(self.hashmap.H[idx].location==element.location):
+                entry=self.hashmap.H[idx]
+                if len(entry.location)==self.d and np.all(entry.location==element.location):
                     if self.hashmap.H[idx].contents==element.contents:
                         found=True
                         unused.remove(idx)
@@ -167,10 +169,11 @@ class TestRandomData(unittest.TestCase):
 
 class Test3DRandomData(TestRandomData):
     def setUp(self):
+        self.int_type=np.uint64
         self.rng=np.random.default_rng(0)
         self.width=12
         self.d=3
-        self.shape=np.array((self.width,)*self.d,dtype=np.uint64)
+        self.shape=np.array((self.width,)*self.d,dtype=self.int_type)
         self.data=[]
         self.data_b=np.full(self.width**self.d,False)
         count=0
@@ -178,12 +181,12 @@ class Test3DRandomData(TestRandomData):
             for y in range(self.width):
                 for z in range(self.width):
                     if self.rng.uniform()<(1/2):
-                        element=psh.data_tuple(np.array([x,y,z],dtype=np.uint64),count)
+                        element=psh.data_tuple(np.array([x,y,z],dtype=self.int_type),count)
                         count+=1
                         self.data.append(element)
                         self.data_b[psh.point_to_index(element.location,self.shape)]=True
-        self.hashmap=psh.PerfectSpatialHashMap(self.data,self.d,self.width,0)
-        self.maxint=np.iinfo(self.hashmap.int_type).max
+        self.hashmap=psh.create_psh(self.data,self.d,self.width,0)
+        self.maxint=np.iinfo(self.int_type).max
 
 
 if __name__=="__main__":

@@ -19,7 +19,7 @@ def game_of_life_test(seed):
     print("data size: "+str(len(data)))
     print("data density: "+str(len(data)/width**2))
     start=timeit.default_timer()
-    hashmap=psh.PerfectSpatialHashMap(data,2,width,seed)
+    hashmap=psh.create_psh(data,2,width,seed)
     stop=timeit.default_timer()
     try:
         element_size=sys.getsizeof(element)+sys.getsizeof(element.location)+sys.getsizeof(element.contents)
