@@ -298,6 +298,7 @@ class PerfectSpatialHashMap:
     def count_real_entries(self):
         return sum((e.location is not None for e in self.H))
 
+@njit
 def entry_hash(point,prime,hash_parameter):
     '''
     compute hash of a point with a particular positional parameter
@@ -311,7 +312,7 @@ def entry_hash(point,prime,hash_parameter):
     Returns:    hk : integer
                     integer hash of point 
     '''
-    return np.dot(point,(hash_parameter**np.arange(1,len(point)+1,dtype=point.dtype)))*prime
+    return np.sum(point*(hash_parameter**np.arange(1,len(point)+1,dtype=point.dtype)))*prime
 class Bucket(list):
     def __init__(self,offset_index):
         self.phi_index=offset_index
