@@ -9,7 +9,6 @@ data_tuple=namedtuple("DataTuple",["location","contents"])
 
 @njit
 def point_to_index(point,shape):
-    shape=np.array(shape)
     return (point[-1]+np.sum(point[:-1]*np.cumprod(shape[:0:-1])[::-1]))%np.prod(shape)
 
 def index_to_point(index,shape):
@@ -53,7 +52,7 @@ class PerfectSpatialHashMap:
             #was passed domain extents in each dimension
             self.u_bar=domain_limit
         elif l==1:
-            self.u_bar=(domain_limit,)*self.d
+            self.u_bar=np.array((domain_limit,)*self.d)
         else:
             raise ValueError("Length of non-singleton domain_limit doesn't match domain_dim") 
         #u is the number of elements in the domain
@@ -242,17 +241,17 @@ class PerfectSpatialHashMap:
     def point_to_domain_idx(self,point):
         return self._point_to_index(point,self.u_bar)
     def point_to_hash_idx(self,point):
-        return self._point_to_index(point,(self.m_bar,)*self.d)
+        return self._point_to_index(point,np.array((self.m_bar,)*self.d))
     def point_to_offset_idx(self,point):
-        return self._point_to_index(point,(self.r_bar,)*self.d)
+        return self._point_to_index(point,np.array((self.r_bar,)*self.d))
     def _point_to_index(self,point,shape):
         return self.int_type(point_to_index(point,shape))
     def index_to_domain_pt(self,index):
         return self._index_to_point(index,self.u_bar)
     def index_to_hash_pt(self,index):
-        return self._index_to_point(index,(self.m_bar,)*self.d)
+        return self._index_to_point(index,np.array((self.m_bar,)*self.d))
     def index_to_offset_pt(self,index):
-        return self._index_to_point(index,(self.r_bar,)*self.d)
+        return self._index_to_point(index,np.array((self.r_bar,)*self.d))
     def _index_to_point(self,index,shape):
         return index_to_point(index,shape).astype(self.int_type)
 

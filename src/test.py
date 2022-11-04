@@ -7,7 +7,7 @@ class TestIndexFunctions(unittest.TestCase):
         self.rng=np.random.default_rng(0)
         self.d=2
         self.width=10000
-        self.shape=(self.width,)*self.d
+        self.shape=np.array((self.width,)*self.d)
         self.max=int(self.width**self.d)
         self.maxint=np.iinfo(np.array([self.width]).dtype).max
     def _point_to_index(self,point,width,max):
@@ -39,24 +39,24 @@ class TestIndexFunctions(unittest.TestCase):
     def test_point_to_index_unsigned(self):
         pts=self.rng.integers(0,self.width,size=(1000,self.d),dtype=np.uint64)
         for pt in pts:
-            self.assertEqual(psh.point_to_index(pt,self.shape),self._point_to_index(pt,self.width,self.max))
+            self.assertEqual(psh.point_to_index(pt,self.shape.astype(np.uint64)),self._point_to_index(pt,self.width,self.max))
     def test_index_to_point_unsigned(self):
         pts=self.rng.integers(0,self.max,size=(1000,),dtype=np.uint64)
         for pt in pts:
-            mine=tuple(psh.index_to_point(pt,self.shape))
+            mine=tuple(psh.index_to_point(pt,self.shape.astype(np.uint64)))
             theirs=tuple(self._index_to_point(pt,self.width,self.max,self.d))
             self.assertEqual(mine,theirs)
 
     def test_point_to_index_to_point_unsigned(self):
         pts=self.rng.integers(0,self.width,size=(1000,self.d),dtype=np.uint64)
         for pt in pts:
-            index=psh.point_to_index(pt,self.shape)
-            self.assertEqual(tuple(psh.index_to_point(index,self.shape)),tuple(pt))
+            index=psh.point_to_index(pt,self.shape.astype(np.uint64))
+            self.assertEqual(tuple(psh.index_to_point(index,self.shape.astype(np.uint64))),tuple(pt))
 
     def test_index_to_point_negative(self):
         pts=self.rng.integers(0,self.max,size=(1000,),dtype=np.uint64)
         for pt in pts:
-            mine=tuple(psh.index_to_point(pt,self.shape))
+            mine=tuple(psh.index_to_point(pt,self.shape.astype(np.uint64)))
             theirs=tuple(self._index_to_point(pt,self.width,self.maxint,self.d))
             self.assertEqual(mine,theirs)
 class TestEntryHash(unittest.TestCase):
@@ -85,7 +85,7 @@ class TestRandomData(unittest.TestCase):
         self.rng=np.random.default_rng(0)
         self.width=48
         self.d=2
-        self.shape=(self.width,)*self.d
+        self.shape=np.array((self.width,)*self.d,dtype=np.uint64)
         self.data=[]
         self.data_b=np.full(self.width*self.width,False)
         count=0
@@ -170,7 +170,7 @@ class Test3DRandomData(TestRandomData):
         self.rng=np.random.default_rng(0)
         self.width=12
         self.d=3
-        self.shape=(self.width,)*self.d
+        self.shape=np.array((self.width,)*self.d,dtype=np.uint64)
         self.data=[]
         self.data_b=np.full(self.width**self.d,False)
         count=0
