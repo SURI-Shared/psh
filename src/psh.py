@@ -2,10 +2,15 @@ from math import ceil
 from collections import defaultdict,namedtuple
 import numpy as np
 from sys import getsizeof
+
+from numba import njit
+
 data_tuple=namedtuple("DataTuple",["location","contents"])
 
+@njit
 def point_to_index(point,shape):
-    return np.ravel_multi_index(point,shape,mode="wrap",order="C")
+    return int(point[-1]+np.sum(point[:-1]*np.cumprod(shape[:0:-1])[::-1])%np.prod(shape))
+
 def index_to_point(index,shape):
     return np.array(np.unravel_index(index,shape))
 
@@ -286,7 +291,7 @@ class PerfectSpatialHashMap:
             raise ValueError("Unable to add element to map")
     def count_real_entries(self):
         return sum((e.location is not None for e in self.H))
-
+@njit
 def entry_hash(point,prime,hash_parameter):
     '''
     compute hash of a point with a particular positional parameter
