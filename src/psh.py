@@ -15,6 +15,11 @@ def point_to_index(point,shape):
 
 @njit
 def index_to_point(index,shape):
+    '''
+    convert nd index to 1d array offset
+    
+    argumets: index, geometry of array
+    '''
     stride=np.concatenate((np.cumprod(shape[-1:0:-1])[::-1],np.array([1],dtype=shape.dtype)))
     output=np.empty_like(shape)
     for i in range(len(shape)):
